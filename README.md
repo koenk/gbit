@@ -8,15 +8,15 @@ on in Game Boy emulator development where test ROMs do not run yet.
 
 For each instruction in the Game Boy instruction set, the framework will issue
 many different executions with varying input states, each time comparing the
-output state to a known-good state.  This allows for easy detection of
+output state to a known-good state. This allows for easy detection of
 implementation errors, such as calculating the wrong results, setting flags
 incorrectly, jumping to the wrong place and even accidentally corrupting other
 state.
 
-To test your CPU implementation, it has to implement and expose four C functions
-(see How to use for more details). This minimal interface should allow any
-emulator written in C and C++ to be easily tested. Additionally, the memory
-accesses made by the test CPU should be logged and mocked as described below.
+To test your CPU implementation, it has to implement four functions (see below
+for more details). This minimal interface should allow any emulator written in
+C and C++ to be easily tested. Additionally, the memory accesses made by the
+test CPU should be logged and mocked as described below.
 
 The known-good CPU implementation included in the framework is based on
 [my own Game Boy emulator](https://github.com/koenk/gbc), which has been
@@ -45,42 +45,45 @@ implementation (running in a simulator) is compared against an emulated CPU.
 ## Hooking up your CPU implementation
 
 The interface for the test framework is defined in `lib/tester.h`, which you
-should include in your code.  The test framework will call the following four
-functions to interact with your CPU:
+should include in your code. The test framework requires four callback functions
+into your CPU, as defined in the `tester_operations` struct. These functions
+should behave as follows:
 
 ```c
-    void tcpu_init(size_t tester_instruction_mem_size,
-                   uint8_t *tester_instruction_mem);
+    void init(size_t instruction_mem_size, uint8_t *instruction_mem);
 ```
 
-Called once at startup. Here you should performance any initialization needed by
+Called once at startup. Here you should perform any initialization needed by
 your CPU. Additionally, the arguments passed in by the tester specify a memory
-area of `tester_instruction_mem_size` bytes, which should be mapped read-only at
+area of `instruction_mem_size` bytes, which should be mapped read-only at
 address 0 for your CPU (see below).
 
 ```c
-    void tcpu_reset(struct state *state);
+    void set_state(struct state *state);
 ```
 
 Reset your CPU to a specific state, as defined in the `state` struct (format can
-be found below).
+be found below). This function is called in between each different instruction
+and set of inputs per instruction.
 
 ```c
-    void tcpu_get_state(struct state *state);
+    void get_state(struct state *state);
 ```
 
 Load the current state of your CPU into the `state` struct (as defined below).
+This function is called after each test run for different instruction and input
+combinations.
 
 ```c
-    int tcpu_step(void);
+    int step(void);
 ```
 
 Step a single instruction of your CPU, and return the number of cycles spent
 doing so. This means machine cycles (running at a 4.19 MHz clock), so for
 instance the `NOP` instruction should return 4.
 
-The file `test_cpu.c` contains some boilerplate code to help you get started
-with implementing these functions.
+The file `test_cpu.c` contains some example and boilerplate code to help you get
+started with implementing these functions.
 
 
 ### Memory accesses
@@ -89,11 +92,11 @@ Instructions are fetched from memory by your CPU. Additionally, many instruction
 will read from or write to memory. Because of this, your implementation should
 also provide a mock MMU.
 
-For reads, addresses 0 through `tester_instruction_mem_size` should return the
-bytes pointed to by `tester_instruction_mem`. These bytes will be the
-instruction that `tcpu_step` will execute.  Note that the memory area pointed to
-by `tester_instruction_mem` will be modified by the test framework in between
-each instruction that is executed. Your `tcpu_init` implementation should
+For reads, addresses 0 through `instruction_mem_size` (as passed in by the
+`init` callback) should return the bytes pointed to by `instruction_mem`. These
+bytes will be the instruction that `step` will execute.  Note that the memory
+area pointed to by `instruction_mem` will be modified by the test framework in
+between each instruction that is executed. Your `init` implementation should
 therefore not copy out the bytes, but instead save the pointer to this area so
 it can be read on-demand. All other memory reads (outside of this particular
 area) should return the value `0xAA`.
@@ -113,8 +116,20 @@ be sufficient for most users.
 
 ### Data types
 
-The data types required, including the state struct that is passed to
-`tcpu_reset` and `tcpu_get_state`, is defined as follows:
+The above callback functions are passed into the framework via the following
+struct:
+
+```c
+    struct tester_operations {
+        void (*init)(size_t instruction_mem_size, uint8_t *instruction_mem);
+        void (*set_state)(struct state *state);
+        void (*get_state)(struct state *state);
+        int (*step)(void);
+    };
+```
+
+All data types related to the state struct, as used by `set_state` and
+`get_state`, are defined as follows:
 
 ```c
     #define MEM_ACCESS_WRITE 1
@@ -158,20 +173,19 @@ array.
 ### C++ compatibility
 
 The test framework is written in C, but can interact with CPUs written in C++ as
-well. Simply make sure the original interface (the `tcpu_` functions described
-above) is visible to the C code. To disable name mangling on your C++ symbols,
-surround the `lib/tester.h` include and the implementations of the 4 `tcpu_`
-function with an `extern "C"` block. The build infrastructure (described below)
-can already handle .cpp files.
+well by simply including the same header file (`lib/tester.h`). When using the
+provided `main.c`, make sure your CPU operations struct is visible to C code
+(i.e., define it inside an `extern "C"` block). The build infrastructure
+(described below) can already handle .cpp files.
 
 
 ## Building and running
 
 The provided Makefile will compile the test framework (in the `lib` directory)
-for you. Additionally, it will build `main.c` to parse command-line
-arguments and start the tests. You can add your own .c and .cpp files to the
-`TARGET_SOURCES` in `Makefile`. It will link everything together in a single
-binary (`gbit`).
+as a shared object file (`libgbit.so`). Additionally, it will build `main.c` to
+parse command-line arguments and start the tests. You can add your own .c and
+.cpp files to the `BINSRC` in `Makefile`, which will be linked into the `gbit`
+binary.
 
 To compile and run the tests, simply run make and the resulting binary:
 

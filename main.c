@@ -4,10 +4,14 @@
 
 #include "lib/tester.h"
 
-static bool keep_going_on_mismatch = 0;
-static bool enable_cb_instruction_testing = 1;
-static bool print_tested_instruction = 0;
-static bool print_verbose_inputs = 0;
+extern struct tester_operations myops;
+
+static struct tester_flags flags = {
+    .keep_going_on_mismatch = 0,
+    .enable_cb_instruction_testing = 1,
+    .print_tested_instruction = 0,
+    .print_verbose_inputs = 0,
+};
 
 static void print_usage(char *progname)
 {
@@ -42,19 +46,19 @@ static int parse_args(int argc, char **argv)
 
         switch (c) {
             case 'k':
-                keep_going_on_mismatch = 1;
+                flags.keep_going_on_mismatch = 1;
                 break;
 
             case 'c':
-                enable_cb_instruction_testing = 0;
+                flags.enable_cb_instruction_testing = 0;
                 break;
 
             case 'p':
-                print_tested_instruction = 1;
+                flags.print_tested_instruction = 1;
                 break;
 
             case 'v':
-                print_verbose_inputs = 1;
+                flags.print_verbose_inputs = 1;
                 break;
 
             case 'h':
@@ -81,6 +85,5 @@ int main(int argc, char **argv)
     if (parse_args(argc, argv))
         return 1;
 
-    return tester_run(keep_going_on_mismatch, enable_cb_instruction_testing,
-            print_tested_instruction, print_verbose_inputs);
+    return tester_run(&flags, &myops);
 }

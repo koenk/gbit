@@ -1,15 +1,22 @@
+# Binary and target CPU - add your source files here
 BINNAME = gbit
-TARGET_SOURCES = main.c test_cpu.c
-TESTER_SOURCES = lib/tester.c lib/inputstate.c lib/ref_cpu.c lib/disassembler.c
+BINSRC = main.c test_cpu.c
 
+# Test framework (shared library)
+LIBNAME = libgbit.so
+LIBSRC = lib/tester.c lib/inputstate.c lib/ref_cpu.c lib/disassembler.c
+
+# Build directory - stores intermediate object files
 BDIR := build
 
-CFLAGS   := -O2 -Wall -Wextra -g -MMD -I.
-CXXFLAGS := -O2 -Wall -Wextra -g -MMD -I.
-LDLIBS   :=
+CURDIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-SOURCES := $(TESTER_SOURCES) $(TARGET_SOURCES)
-OBJS    := $(patsubst %.c,$(BDIR)/%.o,$(patsubst %.cpp,$(BDIR)/%.o,$(SOURCES)))
+CFLAGS   := -O2 -Wall -Wextra -g -MMD -I. -fPIC
+CXXFLAGS := -O2 -Wall -Wextra -g -MMD -I. -fPIC
+LDFLAGS  := -Wl,-rpath="$(CURDIR)" -L. -lgbit
+
+LIBOBJS := $(patsubst %.c,$(BDIR)/%.o,$(LIBSRC))
+BINOBJS := $(patsubst %.c,$(BDIR)/%.o,$(patsubst %.cpp,$(BDIR)/%.o,$(BINSRC)))
 
 
 # Verbosity control
@@ -23,7 +30,7 @@ endif
 .SUFFIXES: # Disable builtin rules
 .PHONY: all run clean
 
-all: $(BINNAME)
+all: $(LIBNAME) $(BINNAME)
 
 run: $(BDIR)/$(BINNAME)
 	-$(BDIR)/$(BINNAME)
@@ -34,9 +41,12 @@ $(BDIR)/%.o: %.c | $(BDIR)
 $(BDIR)/%.o: %.cpp | $(BDIR)
 	$(LOG) [CXX]
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-$(BINNAME): $(OBJS) | $(BDIR)
+$(LIBNAME): $(LIBOBJS) | $(BDIR)
 	$(LOG) [LINK]
-	$(CXX) $^ -o $@ $(LDLIBS)
+	$(CC) $^ -o $@ -shared
+$(BINNAME): $(BINOBJS) | $(LIBNAME) $(BDIR)
+	$(LOG) [LINK]
+	$(CXX) $^ -o $@ $(LDFLAGS)
 
 $(BDIR):
 	mkdir -p $@/lib
@@ -44,6 +54,7 @@ $(BDIR):
 clean:
 	@$(RM) -rf $(BDIR)
 	@$(RM) -rf $(BINNAME)
+	@$(RM) -rf $(LIBNAME)
 
 -include $(BDIR)/*.d
 -include $(BDIR)/lib/*.d

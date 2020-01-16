@@ -18,10 +18,8 @@ static unsigned long num_tests = 0;
 static bool tested_op[256] = { 0 };
 static bool tested_op_cb[256] = { 0 };
 
-static bool keep_going_on_mismatch;
-static bool enable_cb_instruction_testing;
-static bool print_tested_instruction;
-static bool print_verbose_inputs;
+static struct tester_operations *tcpu_ops;
+static struct tester_flags *flags;
 
 static void dump_state(struct state *state)
 {
@@ -121,13 +119,13 @@ static int run_state(struct state *state)
 {
     struct state tcpu_out_state, rcpu_out_state;
 
-    tcpu_reset(state);
+    tcpu_ops->set_state(state);
     rcpu_reset(state);
 
-    tcpu_step();
+    tcpu_ops->step();
     rcpu_step();
 
-    tcpu_get_state(&tcpu_out_state);
+    tcpu_ops->get_state(&tcpu_out_state);
     rcpu_get_state(&rcpu_out_state);
 
     if (!states_eq(&tcpu_out_state, &rcpu_out_state)) {
@@ -200,7 +198,7 @@ static int test_instruction(struct test_inst *inst)
 
         num_tests++;
 
-        if (print_verbose_inputs) {
+        if (flags->print_verbose_inputs) {
             dump_op_state(inst, &op_state);
             disassemble(instruction_mem);
         }
@@ -212,7 +210,7 @@ static int test_instruction(struct test_inst *inst)
 
         if (last_op_had_failure) {
             had_failure = true;
-            if (!keep_going_on_mismatch)
+            if (!flags->keep_going_on_mismatch)
                 return 1;
         }
     } while (!next_state(inst, &op_state, &state));
@@ -230,7 +228,7 @@ static int test_instructions(size_t num_instructions,
     for (size_t i = 0; i < num_instructions; i++) {
         bool failure;
 
-        if (print_tested_instruction) {
+        if (flags->print_tested_instruction) {
             printf("%s   ", insts[i].mnem);
             if (insts[i].is_cb_prefix)
                 printf("(CB prefix)");
@@ -238,16 +236,16 @@ static int test_instructions(size_t num_instructions,
         }
 
         if (!insts[i].enabled) {
-            if (print_tested_instruction)
+            if (flags->print_tested_instruction)
                 printf(" Skipping\n");
             continue;
         }
 
         failure = test_instruction(&insts[i]);
-        if (failure && !keep_going_on_mismatch)
+        if (failure && !flags->keep_going_on_mismatch)
             return 1;
 
-        if (print_tested_instruction)
+        if (flags->print_tested_instruction)
             printf(" Ran %lu permutations\n", num_tests);
 
         if (!failure)
@@ -256,7 +254,7 @@ static int test_instructions(size_t num_instructions,
         num_tests = 0;
     }
 
-    if (print_tested_instruction)
+    if (flags->print_tested_instruction)
         printf("\n");
 
     printf("Tested %zu/%zu %sinstructions", num_instructions_tested,
@@ -265,7 +263,7 @@ static int test_instructions(size_t num_instructions,
         printf(", %zu passed and %zu failed", num_instructions_passed,
                 num_instructions_tested - num_instructions_passed);
     printf("\n");
-    if (print_tested_instruction)
+    if (flags->print_tested_instruction)
         printf("\n");
 
     return 0;
@@ -329,29 +327,25 @@ static int test_all_instructions(void)
     if (test_instructions(num_instructions, instructions, ""))
         return 1;
 
-    if (enable_cb_instruction_testing)
+    if (flags->enable_cb_instruction_testing)
         if (test_instructions(num_cb_instructions, cb_instructions, "CB "))
             return 1;
 
     print_coverage(tested_op, is_valid_op, "");
-    if (enable_cb_instruction_testing)
+    if (flags->enable_cb_instruction_testing)
         print_coverage(tested_op_cb, is_valid_op_cb, "CB ");
 
     return 0;
 }
 
 
-int tester_run(bool opt_keep_going_on_mismatch,
-               bool opt_enable_cb_instruction_testing,
-               bool opt_print_tested_instruction,
-               bool opt_print_verbose_inputs)
+int tester_run(struct tester_flags *app_flags,
+               struct tester_operations *app_tcpu_ops)
 {
-    keep_going_on_mismatch = opt_keep_going_on_mismatch;
-    enable_cb_instruction_testing = opt_enable_cb_instruction_testing;
-    print_tested_instruction = opt_print_tested_instruction;
-    print_verbose_inputs = opt_print_verbose_inputs;
+    flags = app_flags;
+    tcpu_ops = app_tcpu_ops;
 
-    tcpu_init(INSTRUCTION_MEM_SIZE, instruction_mem);
+    tcpu_ops->init(INSTRUCTION_MEM_SIZE, instruction_mem);
     rcpu_init(INSTRUCTION_MEM_SIZE, instruction_mem);
 
     return test_all_instructions();

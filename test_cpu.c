@@ -1,7 +1,7 @@
 /*
  * Placeholder interface implementation for the testing framework.
  *
- * The four functions starting with tcpu_ should be provided by your CPU to be
+ * The four functions starting with mycpu_ should be provided by your CPU to be
  * tested.
  *
  * Additionally, this file contains an example implementation of the mock MMU
@@ -24,8 +24,8 @@ static struct mem_access mem_accesses[16];
  * tester_instruction_mem will contain instructions the tester will inject, and
  * should be mapped read-only at addresses [0,tester_instruction_mem_size).
  */
-void tcpu_init(size_t tester_instruction_mem_size,
-               uint8_t *tester_instruction_mem)
+static void mycpu_init(size_t tester_instruction_mem_size,
+                       uint8_t *tester_instruction_mem)
 {
     instruction_mem_size = tester_instruction_mem_size;
     instruction_mem = tester_instruction_mem;
@@ -36,7 +36,7 @@ void tcpu_init(size_t tester_instruction_mem_size,
 /*
  * Resets the CPU state (e.g., registers) to a given state state.
  */
-void tcpu_reset(struct state *state)
+static void mycpu_set_state(struct state *state)
 {
     (void)state;
 
@@ -46,7 +46,7 @@ void tcpu_reset(struct state *state)
 /*
  * Query the current state of the CPU.
  */
-void tcpu_get_state(struct state *state)
+static void mycpu_get_state(struct state *state)
 {
     state->num_mem_accesses = num_mem_accesses;
     memcpy(state->mem_accesses, mem_accesses, sizeof(mem_accesses));
@@ -58,7 +58,7 @@ void tcpu_get_state(struct state *state)
  * Step a single instruction of the CPU. Returns the amount of cycles this took
  * (e.g., NOP should return 4).
  */
-int tcpu_step(void)
+static int mycpu_step(void)
 {
     int cycles = 0;
 
@@ -66,6 +66,13 @@ int tcpu_step(void)
 
     return cycles;
 }
+
+struct tester_operations myops = {
+    .init = mycpu_init,
+    .set_state = mycpu_set_state,
+    .get_state = mycpu_get_state,
+    .step = mycpu_step,
+};
 
 
 /*

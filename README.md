@@ -4,7 +4,8 @@ Differential testing framework for Game Boy CPUs.
 
 Tests all instructions of a Game Boy CPU against a known-good implementation to
 detect implementation bugs. Useful for testing and debugging, especially early
-on in Game Boy emulator development where test ROMs do not run yet.
+on in Game Boy emulator development where test ROMs do not run yet. Compatible
+with Game Boy emulators written in C, C++ and Python.
 
 For each instruction in the Game Boy instruction set, the framework will issue
 many different executions with varying input states, each time comparing the
@@ -13,10 +14,10 @@ implementation errors, such as calculating the wrong results, setting flags
 incorrectly, jumping to the wrong place and even accidentally corrupting other
 state.
 
-To test your CPU implementation, it has to implement four functions (see below
-for more details). This minimal interface should allow any emulator written in
-C and C++ to be easily tested. Additionally, the memory accesses made by the
-test CPU should be logged and mocked as described below.
+To test your CPU implementation, it has to implement four functions and track
+all memory accesses made by the test CPU (see below for more details). This
+minimal interface should allow any emulator written in C and C++ to be easily
+tested. Additionally, a Python wrapper is available.
 
 The known-good CPU implementation included in the framework is based on
 [my own Game Boy emulator](https://github.com/koenk/gbc), which has been
@@ -177,6 +178,14 @@ well by simply including the same header file (`lib/tester.h`). When using the
 provided `main.c`, make sure your CPU operations struct is visible to C code
 (i.e., define it inside an `extern "C"` block). The build infrastructure
 (described below) can already handle .cpp files.
+
+
+### Python wrapper
+
+A wrapper is available for testing Game Boy emulators written in Python. This
+wrapper uses the same framework library, and thus has similar usage and data
+types. For more details about this wrapper and how to use it, see the python
+directory.
 
 
 ## Building and running

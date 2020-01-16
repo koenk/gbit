@@ -76,6 +76,8 @@ static int mem_access_cmp(const void *p1, const void *p2)
 
 static int states_mem_accesses_eq(struct state *s1, struct state *s2)
 {
+    int i;
+
     if (s1->num_mem_accesses != s2->num_mem_accesses)
         return 0;
 
@@ -87,8 +89,13 @@ static int states_mem_accesses_eq(struct state *s1, struct state *s2)
     qsort(s2->mem_accesses, s2->num_mem_accesses, sizeof(struct mem_access),
             mem_access_cmp);
 
-    return memcmp(s1->mem_accesses, s2->mem_accesses,
-                  s1->num_mem_accesses * sizeof(struct mem_access)) == 0;
+    for (i = 0; i < s1->num_mem_accesses; i++)
+        if (s1->mem_accesses[0].type != s2->mem_accesses[0].type ||
+            s1->mem_accesses[0].addr != s2->mem_accesses[0].addr ||
+            s1->mem_accesses[0].val != s2->mem_accesses[0].val)
+            return 0;
+
+    return 1;
 }
 
 static int states_eq(struct state *s1, struct state *s2)

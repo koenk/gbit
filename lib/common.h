@@ -53,7 +53,6 @@ struct state {
     u16 SP;
     u16 PC;
     bool halted;
-    bool error;
     bool interrupts_master_enabled;
 
     int num_mem_accesses;

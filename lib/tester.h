@@ -23,7 +23,8 @@ struct tester_operations {
 
 /*
  * Runs the tester, which will run all enabled instruction from instructions.h
- * and compare the output to a reference CPU.
+ * and compare the output to a reference CPU. Returns a non-zero value if one or
+ * more instructions did not test successfully, and zero on success.
  */
 int tester_run(struct tester_flags *flags, struct tester_operations *ops);
 

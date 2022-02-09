@@ -40,6 +40,8 @@ static void mycpu_set_state(struct state *state)
 {
     (void)state;
 
+    num_mem_accesses = 0;
+
     /* ... Load your CPU with state as described (e.g., registers) ... */
 }
 

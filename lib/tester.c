@@ -212,7 +212,7 @@ static int test_instruction(struct test_inst *inst)
 
         state.num_mem_accesses = 0;
         u8 imem_old[INSTRUCTION_MEM_SIZE] = {0};
-        memcpy(instruction_mem, imem_old, INSTRUCTION_MEM_SIZE);
+        memcpy(imem_old, instruction_mem, INSTRUCTION_MEM_SIZE);
         last_op_had_failure = run_state(&state);
         //if instruction mem was modified
         if (memcmp(imem_old, instruction_mem, INSTRUCTION_MEM_SIZE)) {

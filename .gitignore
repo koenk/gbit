@@ -2,3 +2,4 @@ build/
 gbit
 libgbit.so
 __pycache__/
+build-msvc/

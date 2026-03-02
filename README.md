@@ -201,6 +201,12 @@ To compile and run the tests, simply run make and the resulting binary:
     $ make
     $ ./gbit
 
+To build with CMake (recommended on Windows), configure and build with:
+
+    > cmake -S . -B build-msvc
+    > cmake --build build-msvc --config Release
+    > .\build-msvc\Release\gbit.exe
+
 This will test each instruction with different input states (e.g., different
 values set to each register, different arguments) and compare the output to
 a reference (known-good) CPU. If a mismatch is detected, the input state and the
@@ -273,10 +279,24 @@ For a full list of options, run `./gbit -h`.
 
 ### Dependencies
 
-This project does not have any dependencies except for a C compiler and make. On
-Debian-based systems you can install these using the following command:
+This project does not have any dependencies except for a C compiler and a build
+tool.
+
+With Make:
 
     $ sudo apt install build-essential
+
+With CMake (cross-platform, including Windows):
+
+    $ cmake -S . -B build
+    $ cmake --build build
+    $ ./build/gbit
+
+On Windows with Visual Studio generators:
+
+    > cmake -S . -B build
+    > cmake --build build --config Release
+    > .\build\Release\gbit.exe
 
 
 # Limitations

@@ -12,6 +12,13 @@
 #include "ref_cpu.h"
 #include "common.h"
 
+#if defined(_MSC_VER)
+#define GBIT_PACKED
+#pragma pack(push, 1)
+#else
+#define GBIT_PACKED __attribute__((packed))
+#endif
+
 struct gb_state {
     /* Registers: allow access to 8-bit and 16-bit regs, and via array. */
     union {
@@ -22,7 +29,7 @@ struct gb_state {
         struct { /* little-endian of x86 is not nice here. */
             u8 C, B, E, D, L, H, F, A;
         } reg8;
-        struct __attribute__((packed)) {
+        struct GBIT_PACKED {
             char padding[6];
             u8 pad1:1;
             u8 pad2:1;
@@ -41,6 +48,10 @@ struct gb_state {
     int halted;
     int interrupts_master_enabled;
 };
+
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
 
 static struct gb_state emu_state;
 
